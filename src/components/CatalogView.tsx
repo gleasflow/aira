@@ -79,13 +79,15 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               ? `Pencarian "${searchQuery}" tidak membuahkan hasil di kategori ini.`
               : 'Belum ada link yang ditambahkan untuk kategori ini.'}
           </p>
-          <button
-            onClick={onOpenNewLink}
-            className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Link Baru</span>
-          </button>
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={onOpenNewLink}
+              className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Link Baru</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
@@ -95,8 +97,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               link={link}
               onLaunch={onLaunch}
               onToggleFavorite={onToggleFavorite}
-              onEdit={onEditLink}
-              onDelete={onDeleteLink}
               currentUser={currentUser}
             />
           ))}

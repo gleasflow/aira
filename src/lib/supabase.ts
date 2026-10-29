@@ -794,7 +794,11 @@ export async function deleteUserFromDb(id: string): Promise<void> {
 }
 
 // Login verification against Supabase Auth & user_profiles table
-export async function authenticateWithDb(email: string, role: UserRole): Promise<UserItem> {
+export async function authenticateWithDb(
+  email: string,
+  role: UserRole,
+  customName?: string
+): Promise<UserItem> {
   const cleanEmail = email.trim().toLowerCase();
 
   if (isSupabaseConfigured && supabase) {
@@ -819,13 +823,26 @@ export async function authenticateWithDb(email: string, role: UserRole): Promise
     return existingLocal;
   }
 
+  const resolvedName =
+    customName && customName.trim().length > 0
+      ? customName.trim()
+      : cleanEmail
+          .split('@')[0]
+          .replace(/[._-]+/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase());
+
   // Buat user baru dan simpan ke Supabase + Cloud Storage
   return await insertUserToDb({
-    name: cleanEmail.split('@')[0],
+    name: resolvedName,
     email: cleanEmail,
     role,
     status: 'active',
-    avatarBg: role === 'admin' ? 'bg-indigo-600' : 'bg-emerald-600',
+    avatarBg:
+      role === 'admin'
+        ? 'bg-indigo-600'
+        : role === 'creator'
+        ? 'bg-violet-600'
+        : 'bg-emerald-600',
   });
 }
 

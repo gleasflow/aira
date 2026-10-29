@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ShieldAlert, Lock, LayoutGrid, LogIn } from 'lucide-react';
 import { AutoHideSidebar } from './components/AutoHideSidebar';
 import { TopHeader } from './components/TopHeader';
 import { CatalogView } from './components/CatalogView';
@@ -160,11 +161,14 @@ export function App() {
     await updateLinkInDb(id, { isFavorite: newFav });
   };
 
-  // Link CRUD
+  const isAdmin = currentUser?.role === 'admin';
+
+  // Link CRUD (Khusus Administrator)
   const handleSaveLink = async (
     linkData: Omit<LinkItem, 'id' | 'clicks' | 'isFavorite' | 'createdAt'>,
     existingId?: string
   ) => {
+    if (!isAdmin) return;
     if (existingId) {
       setLinks((prev) =>
         prev.map((l) => (l.id === existingId ? { ...l, ...linkData } : l))
@@ -178,11 +182,13 @@ export function App() {
   };
 
   const handleEditLink = (link: LinkItem) => {
+    if (!isAdmin) return;
     setEditingLink(link);
     setIsLinkModalOpen(true);
   };
 
   const handleUpdateLink = async (id: string, updates: Partial<LinkItem>) => {
+    if (!isAdmin) return;
     setLinks((prev) =>
       prev.map((l) => (l.id === id ? { ...l, ...updates } : l))
     );
@@ -190,12 +196,14 @@ export function App() {
   };
 
   const handleDeleteLink = async (id: string) => {
+    if (!isAdmin) return;
     setLinks((prev) => prev.filter((l) => l.id !== id));
     await deleteLinkFromDb(id);
   };
 
-  // User CRUD
+  // User CRUD (Khusus Administrator)
   const handleAddUser = async (userData: Omit<UserItem, 'id' | 'joinedDate'>) => {
+    if (!isAdmin) return;
     const createdUser = await insertUserToDb(userData);
     setUsers((prev) => {
       const filtered = prev.filter(
@@ -208,14 +216,21 @@ export function App() {
   };
 
   const handleUpdateUser = async (id: string, updates: Partial<UserItem>) => {
+    if (!isAdmin) return;
     const normalizedId = ensureValidUuid(id);
     setUsers((prev) =>
       prev.map((u) => (u.id === id || u.id === normalizedId ? { ...u, ...updates, id: normalizedId } : u))
+    );
+    setCurrentUser((prev) =>
+      prev && (prev.id === id || prev.id === normalizedId)
+        ? { ...prev, ...updates, id: normalizedId }
+        : prev
     );
     await updateUserInDb(id, updates);
   };
 
   const handleDuplicateLink = async (link: LinkItem) => {
+    if (!isAdmin) return;
     const copyData = {
       title: `${link.title} (Salinan)`,
       description: link.description,
@@ -231,6 +246,7 @@ export function App() {
   };
 
   const handleResetClicks = async (id: string) => {
+    if (!isAdmin) return;
     setLinks((prev) =>
       prev.map((l) => (l.id === id ? { ...l, clicks: 0 } : l))
     );
@@ -238,18 +254,21 @@ export function App() {
   };
 
   const handleRestoreDefaultLinks = async () => {
+    if (!isAdmin) return;
     setLinks([]);
     localStorage.setItem('aira_studio_links', JSON.stringify([]));
     await deleteAllLinksFromDb();
   };
 
   const handleRestoreDefaultData = async () => {
+    if (!isAdmin) return;
     setUsers(INITIAL_USERS);
     localStorage.setItem('aira_studio_users', JSON.stringify(INITIAL_USERS));
     await seedDefaultDataToSupabase(links, INITIAL_USERS);
   };
 
   const handleImportLinks = async (importedLinks: LinkItem[]) => {
+    if (!isAdmin) return;
     const cleaned = importedLinks.filter((l) => !isTemplateLink(l));
     setLinks(cleaned);
     localStorage.setItem('aira_studio_links', JSON.stringify(cleaned));
@@ -257,6 +276,7 @@ export function App() {
   };
 
   const handleUpdateUserRole = async (id: string, role: UserRole) => {
+    if (!isAdmin) return;
     setUsers((prev) =>
       prev.map((u) => (u.id === id ? { ...u, role } : u))
     );
@@ -264,6 +284,7 @@ export function App() {
   };
 
   const handleToggleUserStatus = async (id: string) => {
+    if (!isAdmin) return;
     const user = users.find((u) => u.id === id);
     const newStatus = user?.status === 'active' ? 'suspended' : 'active';
     setUsers((prev) =>
@@ -275,13 +296,14 @@ export function App() {
   };
 
   const handleDeleteUser = async (id: string) => {
+    if (!isAdmin) return;
     setUsers((prev) => prev.filter((u) => u.id !== id));
     await deleteUserFromDb(id);
   };
 
   // Auth Handlers (with Supabase authentication & user_profiles sync)
-  const handleLogin = async (email: string, role: UserRole) => {
-    const user = await authenticateWithDb(email, role);
+  const handleLogin = async (email: string, role: UserRole, customName?: string) => {
+    const user = await authenticateWithDb(email, role, customName);
     setUsers((prev) => {
       const exists = prev.some((u) => u.email.toLowerCase() === user.email.toLowerCase());
       if (exists) {
@@ -295,28 +317,9 @@ export function App() {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setIsLinkModalOpen(false);
+    setEditingLink(null);
     setCurrentTab('login');
-  };
-
-  const getTabTitle = () => {
-    switch (currentTab) {
-      case 'all':
-        return 'Semua Tools & Link';
-      case 'affiliate':
-        return 'Tools Affiliate';
-      case 'animation':
-        return 'Tools Animasi';
-      case 'story':
-        return 'Tools Cerita';
-      case 'favorites':
-        return 'Koleksi Tersimpan';
-      case 'admin':
-        return 'Dashboard Admin';
-      case 'login':
-        return 'Masuk / Akun';
-      default:
-        return 'Katalog';
-    }
   };
 
   const linksCount = {
@@ -335,12 +338,14 @@ export function App() {
         isPinned={isPinned && !isZenMode}
         currentTab={currentTab}
         onSelectTab={(tab) => {
+          if (tab === 'admin' && !isAdmin) return;
           setCurrentTab(tab);
         }}
         onOpen={() => setIsSidebarOpen(true)}
         onClose={() => setIsSidebarOpen(false)}
         onTogglePin={() => setIsPinned(!isPinned)}
         onOpenNewLink={() => {
+          if (!isAdmin) return;
           setEditingLink(null);
           setIsLinkModalOpen(true);
         }}
@@ -362,35 +367,81 @@ export function App() {
           {currentTab === 'login' ? (
             <LoginPage
               currentUser={currentUser}
+              users={users}
               onLogin={handleLogin}
               onLogout={handleLogout}
               onNavigateToCatalog={() => setCurrentTab('all')}
+              onNavigateToAdmin={() => {
+                if (isAdmin) setCurrentTab('admin');
+              }}
+              onUpdateUser={isAdmin ? handleUpdateUser : undefined}
             />
           ) : currentTab === 'admin' ? (
-            <AdminDashboard
-              links={links}
-              users={users}
-              onOpenNewLink={() => {
-                setEditingLink(null);
-                setIsLinkModalOpen(true);
-              }}
-              onCreateLink={(linkData) => handleSaveLink(linkData)}
-              onEditLink={handleEditLink}
-              onUpdateLink={handleUpdateLink}
-              onDeleteLink={handleDeleteLink}
-              onDuplicateLink={handleDuplicateLink}
-              onResetClicks={handleResetClicks}
-              onRestoreDefaultLinks={handleRestoreDefaultLinks}
-              onRestoreDefaultData={handleRestoreDefaultData}
-              onImportLinks={handleImportLinks}
-              onAddUser={handleAddUser}
-              onUpdateUser={handleUpdateUser}
-              onUpdateUserRole={handleUpdateUserRole}
-              onToggleUserStatus={handleToggleUserStatus}
-              onDeleteUser={handleDeleteUser}
-              onLaunchLink={handleLaunchLink}
-              onRefreshFromDb={loadDataFromSupabase}
-            />
+            isAdmin ? (
+              <AdminDashboard
+                links={links}
+                users={users}
+                onOpenNewLink={() => {
+                  if (!isAdmin) return;
+                  setEditingLink(null);
+                  setIsLinkModalOpen(true);
+                }}
+                onCreateLink={(linkData) => handleSaveLink(linkData)}
+                onEditLink={handleEditLink}
+                onUpdateLink={handleUpdateLink}
+                onDeleteLink={handleDeleteLink}
+                onDuplicateLink={handleDuplicateLink}
+                onResetClicks={handleResetClicks}
+                onRestoreDefaultLinks={handleRestoreDefaultLinks}
+                onRestoreDefaultData={handleRestoreDefaultData}
+                onImportLinks={handleImportLinks}
+                onAddUser={handleAddUser}
+                onUpdateUser={handleUpdateUser}
+                onUpdateUserRole={handleUpdateUserRole}
+                onToggleUserStatus={handleToggleUserStatus}
+                onDeleteUser={handleDeleteUser}
+                onLaunchLink={handleLaunchLink}
+                onRefreshFromDb={loadDataFromSupabase}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
+                <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 text-center shadow-sm space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+                    <ShieldAlert className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-rose-600">
+                      <Lock className="w-3 h-3" />
+                      <span>Akses Dibatasi</span>
+                    </span>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Khusus Tingkat Administrator
+                    </h2>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Dashboard Admin dan seluruh sistem CRUD (Tambah, Edit, dan Hapus data Link maupun User) hanya dapat diakses oleh akun dengan tingkat <strong>Administrator</strong>. Pengguna selain Administrator hanya dapat melihat dan meluncurkan katalog link.
+                    </p>
+                  </div>
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentTab('all')}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all cursor-pointer"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span>Lihat Katalog Link</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentTab('login')}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                    >
+                      <LogIn className="w-3.5 h-3.5" />
+                      <span>Ganti Akun Administrator</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
           ) : (
             <CatalogView
               currentTab={currentTab}
@@ -399,6 +450,7 @@ export function App() {
               onLaunch={handleLaunchLink}
               onToggleFavorite={handleToggleFavorite}
               onOpenNewLink={() => {
+                if (!isAdmin) return;
                 setEditingLink(null);
                 setIsLinkModalOpen(true);
               }}
@@ -411,21 +463,23 @@ export function App() {
         </main>
       </div>
 
-      {/* Modal Tambah / Edit Link */}
-      <LinkModal
-        isOpen={isLinkModalOpen}
-        onClose={() => {
-          setIsLinkModalOpen(false);
-          setEditingLink(null);
-        }}
-        onSave={handleSaveLink}
-        initialLink={editingLink}
-        defaultCategory={
-          currentTab === 'affiliate' || currentTab === 'animation' || currentTab === 'story'
-            ? (currentTab as ToolCategory)
-            : 'affiliate'
-        }
-      />
+      {/* Modal Tambah / Edit Link (Hanya aktif untuk Administrator) */}
+      {isAdmin && (
+        <LinkModal
+          isOpen={isLinkModalOpen}
+          onClose={() => {
+            setIsLinkModalOpen(false);
+            setEditingLink(null);
+          }}
+          onSave={handleSaveLink}
+          initialLink={editingLink}
+          defaultCategory={
+            currentTab === 'affiliate' || currentTab === 'animation' || currentTab === 'story'
+              ? (currentTab as ToolCategory)
+              : 'affiliate'
+          }
+        />
+      )}
     </div>
   );
 }

@@ -97,6 +97,8 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
     };
   }, []);
 
+  const isAdmin = currentUser?.role === 'admin';
+
   const menuSections: MenuSectionDef[] = [
     {
       heading: 'Katalog Peluncur Tools',
@@ -115,7 +117,9 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
     {
       heading: 'Manajemen & Sistem',
       items: [
-        { id: 'admin', label: 'Dashboard Admin', icon: ShieldCheck },
+        ...(isAdmin
+          ? [{ id: 'admin' as MainNavigationId, label: 'Dashboard Admin', icon: ShieldCheck }]
+          : []),
         { id: 'login', label: currentUser ? 'Profil & Akun' : 'Masuk / Login Page', icon: User },
       ],
     },
@@ -293,32 +297,43 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
 
         {/* Footer Actions */}
         <div className="p-3 border-t border-slate-100 bg-slate-50/70 flex flex-col gap-2">
-          <button
-            onClick={() => {
-              onOpenNewLink();
-              if (!isPinned) onClose();
-            }}
-            className="w-full flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-3 rounded-xl shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Link Baru</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                onOpenNewLink();
+                if (!isPinned) onClose();
+              }}
+              className="w-full flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-3 rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Link Baru</span>
+            </button>
+          )}
 
           {/* User Account info in footer */}
-          <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-500">
+          <div className={`${isAdmin ? 'pt-2 border-t border-slate-200/60' : ''} flex items-center justify-between text-xs text-slate-500`}>
             <button
               onClick={() => {
                 onOpenLogin();
                 if (!isPinned) onClose();
               }}
-              className="flex items-center gap-2 text-slate-700 hover:text-indigo-600 transition-colors text-left cursor-pointer"
+              className="flex items-center gap-2 text-slate-700 hover:text-indigo-600 transition-colors text-left cursor-pointer w-full"
             >
-              <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px]">
+              <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] shrink-0">
                 {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : <User className="w-3 h-3" />}
               </div>
-              <span className="font-semibold text-xs truncate max-w-[180px]">
-                {currentUser ? currentUser.name : 'Masuk Akun'}
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="font-semibold text-xs truncate block">
+                  {currentUser ? currentUser.name : 'Masuk Akun'}
+                </span>
+                <span className="text-[10px] text-slate-400 truncate block">
+                  {currentUser
+                    ? isAdmin
+                      ? 'Administrator (Akses CRUD)'
+                      : 'Mode Lihat Saja'
+                    : 'Mode Tamu (Lihat Saja)'}
+                </span>
+              </div>
             </button>
           </div>
         </div>

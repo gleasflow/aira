@@ -3,9 +3,6 @@ import {
   ExternalLink, 
   Copy, 
   Check, 
-  Bookmark, 
-  Edit3, 
-  Trash2, 
   TrendingUp, 
   Film, 
   BookOpen,
@@ -18,18 +15,12 @@ interface LinkCardProps {
   link: LinkItem;
   onLaunch: (id: string, url: string) => void;
   onToggleFavorite: (id: string) => void;
-  onEdit?: (link: LinkItem) => void;
-  onDelete?: (id: string) => void;
   currentUser: UserItem | null;
 }
 
 export const LinkCard: React.FC<LinkCardProps> = ({
   link,
   onLaunch,
-  onToggleFavorite,
-  onEdit,
-  onDelete,
-  currentUser,
 }) => {
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -186,30 +177,6 @@ export const LinkCard: React.FC<LinkCardProps> = ({
             {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
             <span className="text-[11px] hidden sm:inline">{copied ? 'Tersalin' : 'Salin'}</span>
           </button>
-
-          {/* Admin Edit/Delete */}
-          {currentUser?.role === 'admin' && (
-            <>
-              {onEdit && (
-                <button
-                  onClick={() => onEdit(link)}
-                  title="Edit Link (Admin)"
-                  className="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(link.id)}
-                  title="Hapus Link (Admin)"
-                  className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </>
-          )}
         </div>
 
         {/* Primary Launch Button */}
