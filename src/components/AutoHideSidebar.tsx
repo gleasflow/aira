@@ -36,10 +36,8 @@ interface AutoHideSidebarProps {
 interface MenuItemDef {
   id: MainNavigationId;
   label: string;
-  desc: string;
   icon: React.FC<{ className?: string }>;
   count?: number;
-  badge?: string;
 }
 
 interface MenuSectionDef {
@@ -103,38 +101,38 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
     {
       heading: 'Katalog Peluncur Tools',
       items: [
-        { id: 'all', label: 'Semua Tools & Link', desc: 'Seluruh katalog aplikasi peluncur AI', icon: LayoutGrid, count: linksCount.all },
-        { id: 'favorites', label: 'Koleksi Favorit', desc: 'Link tools yang sering Anda gunakan', icon: Bookmark, count: linksCount.favorites },
+        { id: 'all', label: 'Semua Tools & Link', icon: LayoutGrid, count: linksCount.all },
       ],
     },
     {
       heading: 'Kategori Khusus AI',
       items: [
-        { id: 'affiliate', label: 'Tools Affiliate', desc: 'Pelacak UTM, konversi e-commerce, automasi komisi', icon: TrendingUp, count: linksCount.affiliate, badge: 'Bisnis' },
-        { id: 'animation', label: 'Tools Animasi', desc: 'AI mocap 3D, generator video, rigging, storyboard', icon: Film, count: linksCount.animation, badge: 'Visual' },
-        { id: 'story', label: 'Tools Cerita', desc: 'Novel worldbuilder, naskah film, generator dialog', icon: BookOpen, count: linksCount.story, badge: 'Kreatif' },
+        { id: 'affiliate', label: 'Tools Affiliate', icon: TrendingUp, count: linksCount.affiliate },
+        { id: 'animation', label: 'Tools Animasi', icon: Film, count: linksCount.animation },
+        { id: 'story', label: 'Tools Cerita', icon: BookOpen, count: linksCount.story },
       ],
     },
     {
       heading: 'Manajemen & Sistem',
       items: [
-        { id: 'admin', label: 'Dashboard Admin', desc: 'Kelola database link, izin pengguna, dan metrik', icon: ShieldCheck, badge: currentUser?.role === 'admin' ? 'Akses Penuh' : 'Khusus Admin' },
-        { id: 'login', label: currentUser ? 'Profil & Akun' : 'Masuk / Login Page', desc: currentUser ? `Login sebagai ${currentUser.name}` : 'Akses kredensial administrator & member', icon: User },
+        { id: 'admin', label: 'Dashboard Admin', icon: ShieldCheck },
+        { id: 'login', label: currentUser ? 'Profil & Akun' : 'Masuk / Login Page', icon: User },
       ],
     },
   ];
 
-  const filteredSections = menuSections.map((section) => ({
-    ...section,
-    items: section.items.filter((item) =>
-      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.desc.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  })).filter(section => section.items.length > 0);
+  const filteredSections = menuSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) =>
+        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <>
-      {/* 1. Left Edge Hover Detection Zone (Invisible strip that opens sidebar when cursor touches left border) */}
+      {/* 1. Left Edge Hover Detection Zone */}
       {!isPinned && (
         <div
           onMouseEnter={handleMouseEnter}
@@ -143,12 +141,12 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
         />
       )}
 
-      {/* 2. Floating Edge Notch / Tab on Left Center (Visual affordance indicating auto-hide menu is here) */}
+      {/* 2. Floating Edge Notch / Tab on Left Center */}
       {!isPinned && !isOpen && (
         <button
           onClick={onOpen}
           onMouseEnter={handleMouseEnter}
-          title="Buka Menu Auto-Hide (Arahkan kursor atau klik)"
+          title="Buka Menu"
           className="fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-white/90 backdrop-blur-md border border-slate-200 border-l-0 rounded-r-2xl py-3 px-2 shadow-md hover:shadow-lg text-slate-500 hover:text-indigo-600 hover:bg-white hover:px-2.5 transition-all cursor-pointer flex flex-col items-center gap-1.5 group select-none"
         >
           <Menu className="w-4 h-4 text-slate-600 group-hover:text-indigo-600 transition-colors" />
@@ -167,40 +165,37 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
         />
       )}
 
-      {/* 4. Sliding Auto-Hide Sidebar Menu Container */}
+      {/* 4. Sliding Sidebar Menu Container */}
       <aside
         ref={containerRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={`${
           isPinned
-            ? 'relative w-84 h-screen border-r border-slate-200 bg-white shrink-0 z-40 shadow-xs'
-            : `fixed left-0 top-0 bottom-0 w-84 bg-white/98 backdrop-blur-2xl border-r border-slate-200 shadow-2xl z-50 transition-transform duration-300 ease-out ${
+            ? 'relative w-72 h-screen border-r border-slate-200 bg-white shrink-0 z-40 shadow-xs'
+            : `fixed left-0 top-0 bottom-0 w-72 bg-white/98 backdrop-blur-2xl border-r border-slate-200 shadow-2xl z-50 transition-transform duration-300 ease-out ${
                 isOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
               }`
         } flex flex-col select-none overflow-hidden`}
-        aria-label="Auto-Hide Sidebar Menu"
+        aria-label="Sidebar Menu"
       >
         {/* Top Header of Sidebar */}
         <div className="p-4 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-xs">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <div>
-                <span className="font-extrabold text-slate-900 text-xs block leading-tight">AIRA Studio AI</span>
-                <span className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider block leading-none">
-                  {isPinned ? 'Sidebar Disematkan' : 'Mode Auto-Hide'}
-                </span>
-              </div>
+              <span className="font-extrabold text-slate-900 text-xs block leading-tight">
+                AIRA Studio AI
+              </span>
             </div>
 
             <div className="flex items-center gap-1">
-              {/* Pin / Auto-Hide Mode Toggle */}
+              {/* Pin Sidebar Toggle */}
               <button
                 onClick={onTogglePin}
-                title={isPinned ? 'Alihkan ke Mode Auto-Hide' : 'Sematkan Sidebar (Tetap Tampil)'}
+                title={isPinned ? 'Lepas Sematan Sidebar' : 'Sematkan Sidebar'}
                 className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1 ${
                   isPinned
                     ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
@@ -230,13 +225,13 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari tools atau menu..."
+              placeholder="Cari menu..."
               className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all"
             />
           </div>
         </div>
 
-        {/* Menu Items List */}
+        {/* Menu Items List (Tanpa keterangan tambahan) */}
         <div className="flex-1 overflow-y-auto p-3 space-y-4">
           {filteredSections.map((section, idx) => (
             <div key={idx} className="space-y-1">
@@ -257,33 +252,29 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
                         onClose();
                       }
                     }}
-                    className={`w-full text-left p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-between group border ${
+                    className={`w-full text-left px-2.5 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-between group border ${
                       isActive
                         ? 'bg-indigo-50/90 border-indigo-200 text-indigo-900 shadow-xs'
                         : 'bg-transparent border-transparent hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <div className="flex items-start gap-3 flex-1 min-w-0 pr-2">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                        isActive ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600'
-                      }`}>
+                    <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          isActive
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600'
+                        }`}
+                      >
                         <Icon className="w-4 h-4" />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-semibold truncate ${isActive ? 'text-indigo-950' : 'text-slate-800'}`}>
-                            {item.label}
-                          </span>
-                          {item.badge && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                          {item.desc}
-                        </p>
-                      </div>
+                      <span
+                        className={`text-xs font-semibold truncate ${
+                          isActive ? 'text-indigo-950' : 'text-slate-800'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </div>
 
                     {item.count !== undefined ? (
@@ -320,19 +311,15 @@ export const AutoHideSidebar: React.FC<AutoHideSidebarProps> = ({
                 onOpenLogin();
                 if (!isPinned) onClose();
               }}
-              className="flex items-center gap-2 text-slate-700 hover:text-indigo-600 transition-colors text-left"
+              className="flex items-center gap-2 text-slate-700 hover:text-indigo-600 transition-colors text-left cursor-pointer"
             >
               <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px]">
                 {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : <User className="w-3 h-3" />}
               </div>
-              <span className="font-semibold text-xs truncate max-w-[140px]">
+              <span className="font-semibold text-xs truncate max-w-[180px]">
                 {currentUser ? currentUser.name : 'Masuk Akun'}
               </span>
             </button>
-
-            <span className="text-[10px] text-slate-400">
-              {isPinned ? 'Tersemat' : 'Auto-Hide'}
-            </span>
           </div>
         </div>
       </aside>

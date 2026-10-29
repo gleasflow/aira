@@ -33,6 +33,7 @@ export const LinkCard: React.FC<LinkCardProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   React.useEffect(() => {
     setImgError(false);
@@ -73,6 +74,7 @@ export const LinkCard: React.FC<LinkCardProps> = ({
 
   const gradient = link?.gradientTheme || 'from-indigo-600 to-violet-600';
   const clicksCount = typeof link?.clicks === 'number' ? link.clicks : 0;
+  const rawDescription = (link?.description || '').trim();
 
   return (
     <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
@@ -111,28 +113,13 @@ export const LinkCard: React.FC<LinkCardProps> = ({
           )}
 
           {/* Top badges over thumbnail */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-            {link?.badge && (
+          {link?.badge && (
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
               <span className="text-[10px] font-bold text-white bg-indigo-600/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-xs">
                 {link.badge}
               </span>
-            )}
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite(link.id);
-              }}
-              title={link?.isFavorite ? 'Hapus dari favorit' : 'Tambah ke favorit'}
-              className={`p-1.5 rounded-full backdrop-blur-md transition-all cursor-pointer ${
-                link?.isFavorite
-                  ? 'bg-amber-400 text-amber-950 shadow-sm'
-                  : 'bg-white/80 text-slate-700 hover:bg-white hover:text-amber-500'
-              }`}
-            >
-              <Bookmark className={`w-3.5 h-3.5 ${link?.isFavorite ? 'fill-current' : ''}`} />
-            </button>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Card Content & Keterangan */}
@@ -154,9 +141,36 @@ export const LinkCard: React.FC<LinkCardProps> = ({
             {link?.title || 'Tool'}
           </h3>
 
-          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-            {link?.description || ''}
-          </p>
+          {/* Deskripsi Link dengan Tombol Selengkapnya */}
+          <div className="mb-3">
+            {rawDescription ? (
+              <>
+                <p
+                  className={`text-xs text-slate-600 leading-relaxed break-words ${
+                    isDescExpanded ? 'whitespace-pre-line' : 'line-clamp-1'
+                  }`}
+                >
+                  {isDescExpanded
+                    ? rawDescription
+                    : rawDescription.length > 60
+                    ? `${rawDescription.slice(0, 60).trim()}...`
+                    : rawDescription}
+                </p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsDescExpanded((prev) => !prev);
+                  }}
+                  className="mt-1 inline-flex items-center text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+                >
+                  {isDescExpanded ? 'Sembunyikan' : 'Selengkapnya'}
+                </button>
+              </>
+            ) : (
+              <p className="text-xs text-slate-400 italic">Tidak ada keterangan link</p>
+            )}
+          </div>
         </div>
       </div>
 

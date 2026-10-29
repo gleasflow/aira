@@ -123,9 +123,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [inlineLinkTag, setInlineLinkTag] = useState('');
   const [inlineLinkDesc, setInlineLinkDesc] = useState('');
 
-  // Link Detail Modal (Read) & Delete Confirmation Modal (Delete)
+  // Link Detail Modal (Read), Expanded Description State & Delete Confirmation Modal (Delete)
   const [detailLinkItem, setDetailLinkItem] = useState<LinkItem | null>(null);
   const [deleteLinkCandidate, setDeleteLinkCandidate] = useState<LinkItem | null>(null);
+  const [expandedLinkDescIds, setExpandedLinkDescIds] = useState<Record<string, boolean>>({});
 
   // ============================================
   // STATE: MANAGEMENT USER (TABEL CRUD)
@@ -579,9 +580,6 @@ WITH CHECK (bucket_id = 'link-thumbnails');`;
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                 Dashboard Admin
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tabel Management Link (CRUD) &amp; Tabel Management User (CRUD) terintegrasi Supabase
-              </p>
             </div>
           </div>
         </div>
@@ -757,9 +755,6 @@ WITH CHECK (bucket_id = 'link-thumbnails');`;
                     {safeLinks.length} Data
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Tambah (Create), Lihat (Read), Ubah (Update), dan Hapus (Delete) data link launcher
-                </p>
               </div>
             </div>
 
@@ -1088,9 +1083,12 @@ WITH CHECK (bucket_id = 'link-thumbnails');`;
                                 )}
                               </button>
 
-                              <div className="min-w-0 flex-1 space-y-1">
+                              <div className="min-w-0 flex-1 space-y-0.5">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-bold text-slate-900 text-xs break-words">
+                                  <span
+                                    className="font-bold text-slate-900 text-xs truncate max-w-[170px] sm:max-w-[230px] lg:max-w-[280px]"
+                                    title={link.title}
+                                  >
                                     {link.title}
                                   </span>
                                   {link.badge && (
@@ -1099,9 +1097,41 @@ WITH CHECK (bucket_id = 'link-thumbnails');`;
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-slate-500 break-words leading-relaxed">
-                                  {link.description || '-'}
-                                </p>
+                                <div className="min-w-0">
+                                  {link.description ? (
+                                    <div className="space-y-0.5">
+                                      <p
+                                        className={`text-[11px] text-slate-600 leading-relaxed break-words ${
+                                          expandedLinkDescIds[link.id]
+                                            ? 'whitespace-pre-line'
+                                            : 'truncate max-w-[170px] sm:max-w-[230px] lg:max-w-[290px]'
+                                        }`}
+                                      >
+                                        {expandedLinkDescIds[link.id]
+                                          ? link.description
+                                          : link.description.length > 50
+                                          ? `${link.description.slice(0, 50).trim()}...`
+                                          : link.description}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedLinkDescIds((prev) => ({
+                                            ...prev,
+                                            [link.id]: !prev[link.id],
+                                          }))
+                                        }
+                                        className="inline-flex items-center text-[10px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+                                      >
+                                        {expandedLinkDescIds[link.id]
+                                          ? 'Sembunyikan'
+                                          : 'Selengkapnya'}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <p className="text-[11px] text-slate-400">-</p>
+                                  )}
+                                </div>
 
                                 {/* URL shown on < md screens */}
                                 <div className="md:hidden pt-0.5">
@@ -1110,7 +1140,8 @@ WITH CHECK (bucket_id = 'link-thumbnails');`;
                                     target="_blank"
                                     rel="noreferrer"
                                     onClick={() => onLaunchLink?.(link.id, link.url)}
-                                    className="font-mono text-[10px] text-indigo-600 hover:underline break-all block"
+                                    title={link.url}
+                                    className="font-mono text-[10px] text-indigo-600 hover:underline truncate max-w-[180px] sm:max-w-[240px] block"
                                   >
                                     {link.url}
                                   </a>
@@ -1173,7 +1204,7 @@ WITH CHECK (bucket_id = 'link-thumbnails');`;
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={() => onLaunchLink?.(link.id, link.url)}
-                                className="font-mono text-[11px] text-indigo-600 hover:underline break-all"
+                                className="font-mono text-[11px] text-indigo-600 hover:underline truncate max-w-[150px] lg:max-w-[210px] block"
                                 title={link.url}
                               >
                                 {link.url}
@@ -1384,9 +1415,6 @@ WITH CHECK (bucket_id = 'link-thumbnails');`;
                     {safeUsers.length} User
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Tambah (Create), Lihat (Read), Ubah Role/Status (Update), dan Hapus (Delete) akun pengguna
-                </p>
               </div>
             </div>
 
