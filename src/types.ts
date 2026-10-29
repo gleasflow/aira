@@ -42,4 +42,4 @@ export type MainNavigationId =
   | 'admin' 
   | 'login';
 
-export type AdminSubTab = 'overview' | 'links' | 'users' | 'settings';
+export type AdminSubTab = 'all' | 'links' | 'users' | 'overview' | 'settings';

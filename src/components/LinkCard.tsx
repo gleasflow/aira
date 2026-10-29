@@ -46,46 +46,53 @@ export const LinkCard: React.FC<LinkCardProps> = ({
   };
 
   const getCategoryIcon = () => {
-    switch (link.category) {
+    switch (link?.category) {
       case 'affiliate':
         return <TrendingUp className="w-4 h-4 text-amber-600" />;
       case 'animation':
         return <Film className="w-4 h-4 text-indigo-600" />;
       case 'story':
         return <BookOpen className="w-4 h-4 text-emerald-600" />;
+      default:
+        return <Sparkles className="w-4 h-4 text-indigo-600" />;
     }
   };
 
   const getCategoryLabel = () => {
-    switch (link.category) {
+    switch (link?.category) {
       case 'affiliate':
         return 'Tools Affiliate';
       case 'animation':
         return 'Tools Animasi';
       case 'story':
         return 'Tools Cerita';
+      default:
+        return 'Tools AI';
     }
   };
+
+  const gradient = link?.gradientTheme || 'from-indigo-600 to-violet-600';
+  const clicksCount = typeof link?.clicks === 'number' ? link.clicks : 0;
 
   return (
     <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
       <div>
         {/* Thumbnail Area */}
         <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
-          {link.thumbnailUrl && !imgError ? (
+          {link?.thumbnailUrl && !imgError ? (
             <img
               src={link.thumbnailUrl}
-              alt={link.title}
+              alt={link.title || 'Tool'}
               onError={() => setImgError(true)}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
             />
           ) : (
             /* Styled CSS/SVG Fallback Artwork Banner */
-            <div className={`w-full h-full bg-gradient-to-tr ${link.gradientTheme} p-5 flex flex-col justify-between relative select-none`}>
+            <div className={`w-full h-full bg-gradient-to-tr ${gradient} p-5 flex flex-col justify-between relative select-none`}>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-white/90 bg-black/20 backdrop-blur-md px-2.5 py-0.5 rounded-full">
-                  {link.tag}
+                  {link?.tag || 'Tools'}
                 </span>
                 <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
                   {getCategoryIcon()}
@@ -97,7 +104,7 @@ export const LinkCard: React.FC<LinkCardProps> = ({
                   AIRA Launcher
                 </p>
                 <h4 className="text-white text-base font-bold line-clamp-1 drop-shadow-xs">
-                  {link.title}
+                  {link?.title || 'Tool Launcher'}
                 </h4>
               </div>
             </div>
@@ -105,7 +112,7 @@ export const LinkCard: React.FC<LinkCardProps> = ({
 
           {/* Top badges over thumbnail */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-            {link.badge && (
+            {link?.badge && (
               <span className="text-[10px] font-bold text-white bg-indigo-600/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-xs">
                 {link.badge}
               </span>
@@ -116,14 +123,14 @@ export const LinkCard: React.FC<LinkCardProps> = ({
                 e.stopPropagation();
                 onToggleFavorite(link.id);
               }}
-              title={link.isFavorite ? 'Hapus dari favorit' : 'Tambah ke favorit'}
+              title={link?.isFavorite ? 'Hapus dari favorit' : 'Tambah ke favorit'}
               className={`p-1.5 rounded-full backdrop-blur-md transition-all cursor-pointer ${
-                link.isFavorite
+                link?.isFavorite
                   ? 'bg-amber-400 text-amber-950 shadow-sm'
                   : 'bg-white/80 text-slate-700 hover:bg-white hover:text-amber-500'
               }`}
             >
-              <Bookmark className={`w-3.5 h-3.5 ${link.isFavorite ? 'fill-current' : ''}`} />
+              <Bookmark className={`w-3.5 h-3.5 ${link?.isFavorite ? 'fill-current' : ''}`} />
             </button>
           </div>
         </div>
@@ -139,16 +146,16 @@ export const LinkCard: React.FC<LinkCardProps> = ({
 
             <span className="font-mono tabular-nums text-slate-500 flex items-center gap-1 text-[11px]">
               <MousePointerClick className="w-3.5 h-3.5 text-slate-400" />
-              <span>{link.clicks.toLocaleString()} klik</span>
+              <span>{clicksCount.toLocaleString()} klik</span>
             </span>
           </div>
 
           <h3 className="font-bold text-slate-900 text-base leading-snug mb-1.5 group-hover:text-indigo-700 transition-colors">
-            {link.title}
+            {link?.title || 'Tool'}
           </h3>
 
           <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">
-            {link.description}
+            {link?.description || ''}
           </p>
         </div>
       </div>

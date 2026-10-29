@@ -27,7 +27,7 @@ interface CatalogViewProps {
 
 export const CatalogView: React.FC<CatalogViewProps> = ({
   currentTab,
-  links,
+  links = [],
   searchQuery,
   onLaunch,
   onToggleFavorite,
@@ -37,24 +37,33 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   currentUser,
   onSelectCategory,
 }) => {
+  // Defensive links array
+  const safeLinks = Array.isArray(links) ? links : [];
+
   // Filter based on tab
-  let categoryFiltered = links;
+  let categoryFiltered = safeLinks;
   if (currentTab === 'affiliate') {
-    categoryFiltered = links.filter((l) => l.category === 'affiliate');
+    categoryFiltered = safeLinks.filter((l) => l?.category === 'affiliate');
   } else if (currentTab === 'animation') {
-    categoryFiltered = links.filter((l) => l.category === 'animation');
+    categoryFiltered = safeLinks.filter((l) => l?.category === 'animation');
   } else if (currentTab === 'story') {
-    categoryFiltered = links.filter((l) => l.category === 'story');
+    categoryFiltered = safeLinks.filter((l) => l?.category === 'story');
   } else if (currentTab === 'favorites') {
-    categoryFiltered = links.filter((l) => l.isFavorite);
+    categoryFiltered = safeLinks.filter((l) => Boolean(l?.isFavorite));
   }
 
-  // Filter based on search query
-  const displayLinks = categoryFiltered.filter((l) =>
-    l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    l.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    l.tag.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter based on search query (completely null-safe)
+  const q = (searchQuery || '').trim().toLowerCase();
+  const displayLinks = categoryFiltered.filter((l) => {
+    if (!l) return false;
+    return (
+      !q ||
+      (l.title || '').toLowerCase().includes(q) ||
+      (l.description || '').toLowerCase().includes(q) ||
+      (l.tag || '').toLowerCase().includes(q) ||
+      (l.url || '').toLowerCase().includes(q)
+    );
+  });
 
   const getHeaderInfo = () => {
     switch (currentTab) {
@@ -101,7 +110,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const IconComponent = headerInfo.icon;
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto p-6 lg:p-8 space-y-6 bg-slate-50">
+    <div className="flex-1 h-full min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 bg-slate-50 pb-20">
       {/* Category Header Banner */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-6 lg:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-2xl">

@@ -12,12 +12,13 @@ import {
   UserRole, 
   ToolCategory 
 } from './types';
-import { INITIAL_LINKS, INITIAL_USERS } from './data/initialData';
+import { INITIAL_LINKS, INITIAL_USERS, isTemplateLink } from './data/initialData';
 import { 
   getLinksFromDb, 
   insertLinkToDb, 
   updateLinkInDb, 
   deleteLinkFromDb,
+  deleteAllLinksFromDb,
   getUsersFromDb,
   insertUserToDb,
   updateUserInDb,
@@ -25,6 +26,8 @@ import {
   toggleUserStatusInDb,
   deleteUserFromDb,
   authenticateWithDb,
+  seedDefaultDataToSupabase,
+  ensureValidUuid,
   isSupabaseConfigured
 } from './lib/supabase';
 
@@ -36,50 +39,84 @@ export function App() {
   const [isZenMode, setIsZenMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Data States
+  // Data States (tanpa template link bawaan)
   const [links, setLinks] = useState<LinkItem[]>(() => {
-    const saved = localStorage.getItem('aira_studio_links');
-    return saved ? JSON.parse(saved) : INITIAL_LINKS;
+    try {
+      const saved = localStorage.getItem('aira_studio_links');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter((l: any) => !isTemplateLink(l));
+          localStorage.setItem('aira_studio_links', JSON.stringify(cleaned));
+          return cleaned;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed parsing aira_studio_links:', e);
+    }
+    return INITIAL_LINKS;
   });
 
   const [users, setUsers] = useState<UserItem[]>(() => {
-    const saved = localStorage.getItem('aira_studio_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    try {
+      const saved = localStorage.getItem('aira_studio_users');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed parsing aira_studio_users:', e);
+    }
+    return INITIAL_USERS;
   });
 
   const [currentUser, setCurrentUser] = useState<UserItem | null>(() => {
-    const saved = localStorage.getItem('aira_studio_current_user');
-    return saved ? JSON.parse(saved) : INITIAL_USERS[0]; // Super Admin demo account
+    try {
+      const saved = localStorage.getItem('aira_studio_current_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return INITIAL_USERS[0]; // Super Admin demo account
   });
 
   // Modal States
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
 
-  // Initial load from Supabase database
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [fetchedLinks, fetchedUsers] = await Promise.all([
-          getLinksFromDb(),
-          getUsersFromDb(),
-        ]);
-        if (fetchedLinks && fetchedLinks.length > 0) setLinks(fetchedLinks);
-        if (fetchedUsers && fetchedUsers.length > 0) setUsers(fetchedUsers);
-      } catch (e) {
-        console.warn('Initial Supabase load error:', e);
+  // Initial load & refresh from Supabase database
+  const loadDataFromSupabase = async () => {
+    try {
+      const [fetchedLinks, fetchedUsers] = await Promise.all([
+        getLinksFromDb(),
+        getUsersFromDb(),
+      ]);
+      if (Array.isArray(fetchedLinks)) {
+        setLinks(fetchedLinks.filter((l) => !isTemplateLink(l)));
       }
+
+      if (fetchedUsers && fetchedUsers.length > 0) {
+        setUsers(fetchedUsers);
+      } else {
+        setUsers((prev) => (prev.length > 0 ? prev : INITIAL_USERS));
+      }
+    } catch (e) {
+      console.warn('Initial Supabase load error:', e);
+      setUsers((prev) => (prev.length > 0 ? prev : INITIAL_USERS));
     }
-    loadData();
+  };
+
+  useEffect(() => {
+    loadDataFromSupabase();
   }, []);
 
-  // Sync to local storage
+  // Sync to local storage (always sync, even when empty)
   useEffect(() => {
     localStorage.setItem('aira_studio_links', JSON.stringify(links));
   }, [links]);
 
   useEffect(() => {
-    localStorage.setItem('aira_studio_users', JSON.stringify(users));
+    if (users.length > 0) {
+      localStorage.setItem('aira_studio_users', JSON.stringify(users));
+    }
   }, [users]);
 
   useEffect(() => {
@@ -145,22 +182,35 @@ export function App() {
     setIsLinkModalOpen(true);
   };
 
+  const handleUpdateLink = async (id: string, updates: Partial<LinkItem>) => {
+    setLinks((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...updates } : l))
+    );
+    await updateLinkInDb(id, updates);
+  };
+
   const handleDeleteLink = async (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus link tools ini?')) {
-      setLinks((prev) => prev.filter((l) => l.id !== id));
-      await deleteLinkFromDb(id);
-    }
+    setLinks((prev) => prev.filter((l) => l.id !== id));
+    await deleteLinkFromDb(id);
   };
 
   // User CRUD
   const handleAddUser = async (userData: Omit<UserItem, 'id' | 'joinedDate'>) => {
     const createdUser = await insertUserToDb(userData);
-    setUsers((prev) => [createdUser, ...prev]);
+    setUsers((prev) => {
+      const filtered = prev.filter(
+        (u) =>
+          u.id !== createdUser.id &&
+          u.email.toLowerCase() !== createdUser.email.toLowerCase()
+      );
+      return [createdUser, ...filtered];
+    });
   };
 
   const handleUpdateUser = async (id: string, updates: Partial<UserItem>) => {
+    const normalizedId = ensureValidUuid(id);
     setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
+      prev.map((u) => (u.id === id || u.id === normalizedId ? { ...u, ...updates, id: normalizedId } : u))
     );
     await updateUserInDb(id, updates);
   };
@@ -187,16 +237,23 @@ export function App() {
     await updateLinkInDb(id, { clicks: 0 });
   };
 
-  const handleRestoreDefaultLinks = () => {
-    if (confirm('Pulihkan data link ke bawaan awal AIRA Studio AI? Tindakan ini akan menggantikan daftar link saat ini.')) {
-      setLinks(INITIAL_LINKS);
-      localStorage.setItem('aira_studio_links', JSON.stringify(INITIAL_LINKS));
-    }
+  const handleRestoreDefaultLinks = async () => {
+    setLinks([]);
+    localStorage.setItem('aira_studio_links', JSON.stringify([]));
+    await deleteAllLinksFromDb();
   };
 
-  const handleImportLinks = (importedLinks: LinkItem[]) => {
-    setLinks(importedLinks);
-    localStorage.setItem('aira_studio_links', JSON.stringify(importedLinks));
+  const handleRestoreDefaultData = async () => {
+    setUsers(INITIAL_USERS);
+    localStorage.setItem('aira_studio_users', JSON.stringify(INITIAL_USERS));
+    await seedDefaultDataToSupabase(links, INITIAL_USERS);
+  };
+
+  const handleImportLinks = async (importedLinks: LinkItem[]) => {
+    const cleaned = importedLinks.filter((l) => !isTemplateLink(l));
+    setLinks(cleaned);
+    localStorage.setItem('aira_studio_links', JSON.stringify(cleaned));
+    await seedDefaultDataToSupabase(cleaned, users);
   };
 
   const handleUpdateUserRole = async (id: string, role: UserRole) => {
@@ -218,10 +275,8 @@ export function App() {
   };
 
   const handleDeleteUser = async (id: string) => {
-    if (confirm('Hapus pengguna ini dari sistem?')) {
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-      await deleteUserFromDb(id);
-    }
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    await deleteUserFromDb(id);
   };
 
   // Auth Handlers (with Supabase authentication & user_profiles sync)
@@ -303,7 +358,7 @@ export function App() {
         />
 
         {/* Dynamic Workspace Content */}
-        <main className="flex-1 flex flex-col overflow-hidden relative">
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
           {currentTab === 'login' ? (
             <LoginPage
               currentUser={currentUser}
@@ -319,11 +374,14 @@ export function App() {
                 setEditingLink(null);
                 setIsLinkModalOpen(true);
               }}
+              onCreateLink={(linkData) => handleSaveLink(linkData)}
               onEditLink={handleEditLink}
+              onUpdateLink={handleUpdateLink}
               onDeleteLink={handleDeleteLink}
               onDuplicateLink={handleDuplicateLink}
               onResetClicks={handleResetClicks}
               onRestoreDefaultLinks={handleRestoreDefaultLinks}
+              onRestoreDefaultData={handleRestoreDefaultData}
               onImportLinks={handleImportLinks}
               onAddUser={handleAddUser}
               onUpdateUser={handleUpdateUser}
@@ -331,6 +389,7 @@ export function App() {
               onToggleUserStatus={handleToggleUserStatus}
               onDeleteUser={handleDeleteUser}
               onLaunchLink={handleLaunchLink}
+              onRefreshFromDb={loadDataFromSupabase}
             />
           ) : (
             <CatalogView

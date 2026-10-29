@@ -1,165 +1,33 @@
 import { LinkItem, UserItem } from '../types';
 
-export const INITIAL_LINKS: LinkItem[] = [
-  // --- Tools Affiliate ---
-  {
-    id: 'link-aff-1',
-    title: 'Affiliate UTM & Link Optimizer',
-    description: 'Generator link pelacak cerdas dengan pemendek URL kustom, parameter UTM otomatis, dan analisis rasio klik komisi.',
-    url: 'https://track.airastudio.internal/affiliate-utm',
-    category: 'affiliate',
-    tag: 'Pelacak & UTM',
-    gradientTheme: 'from-amber-500 to-orange-600',
-    clicks: 1420,
-    isFavorite: true,
-    createdAt: '2026-10-15',
-    badge: 'Populer',
-  },
-  {
-    id: 'link-aff-2',
-    title: 'TikTok Shop Creator Trend Finder',
-    description: 'Analisis produk viral terlaris, perkiraan komisi per penjualan, dan template ulasan konversi tinggi untuk kreator.',
-    url: 'https://tools.airastudio.internal/tiktok-shop-creator',
-    category: 'affiliate',
-    tag: 'Marketplace',
-    gradientTheme: 'from-rose-500 to-pink-600',
-    clicks: 2890,
-    isFavorite: true,
-    createdAt: '2026-10-18',
-    badge: 'Trending',
-  },
-  {
-    id: 'link-aff-3',
-    title: 'Shopee & Tokopedia Auto-Review Generator',
-    description: 'Pembuat naskah video affiliate otomatis berdasarkan deskripsi produk dan testimoni pembeli dalam hitungan detik.',
-    url: 'https://studio.airastudio.internal/ecommerce-reviewer',
-    category: 'affiliate',
-    tag: 'Konten Otomatis',
-    gradientTheme: 'from-orange-500 to-amber-600',
-    clicks: 980,
-    isFavorite: false,
-    createdAt: '2026-10-20',
-  },
-  {
-    id: 'link-aff-4',
-    title: 'Revenue & Commission Split Ledger',
-    description: 'Kalkulator proyeksi keuntungan bersih dan integrasi laporan komisi dari berbagai jaringan program affiliasi.',
-    url: 'https://ledger.airastudio.internal/commission-calc',
-    category: 'affiliate',
-    tag: 'Keuangan',
-    gradientTheme: 'from-emerald-500 to-teal-600',
-    clicks: 740,
-    isFavorite: false,
-    createdAt: '2026-10-22',
-  },
+// Semua template link bawaan telah dihapus sesuai permintaan pengguna.
+export const INITIAL_LINKS: LinkItem[] = [];
 
-  // --- Tools Animasi ---
-  {
-    id: 'link-anim-1',
-    title: 'DeepMotion AI 3D Rigger & Mocap',
-    description: 'Ubah rekaman video biasa menjadi data gerak 3D karakter (FBX/BVH) secara instan tanpa sensor fisik.',
-    url: 'https://mocap.airastudio.internal/3d-rigging',
-    category: 'animation',
-    tag: '3D Mocap',
-    gradientTheme: 'from-indigo-600 to-blue-600',
-    clicks: 3410,
-    isFavorite: true,
-    createdAt: '2026-10-12',
-    badge: 'Andalan 3D',
-  },
-  {
-    id: 'link-anim-2',
-    title: 'Pika & Runway AI Cinematic Motion Suite',
-    description: 'Generator klip video resolusi tinggi dari prompt teks dan gambar dengan kontrol kamera dinamis 360 derajat.',
-    url: 'https://render.airastudio.internal/cinematic-motion',
-    category: 'animation',
-    tag: 'AI Video',
-    gradientTheme: 'from-purple-600 to-indigo-600',
-    clicks: 4120,
-    isFavorite: true,
-    createdAt: '2026-10-14',
-    badge: 'Pilihan Utama',
-  },
-  {
-    id: 'link-anim-3',
-    title: 'Vector Storyboard & Scene Pacing Studio',
-    description: 'Rancang alur adegan animasi 2D, timecode, dan perpustakaan pose karakter dengan layout siap ekspor PDF.',
-    url: 'https://anim.airastudio.internal/storyboard-pro',
-    category: 'animation',
-    tag: 'Storyboard',
-    gradientTheme: 'from-cyan-500 to-blue-600',
-    clicks: 1150,
-    isFavorite: false,
-    createdAt: '2026-10-21',
-  },
-  {
-    id: 'link-anim-4',
-    title: 'Voice-to-LipSync 2D Character Automator',
-    description: 'Sinkronisasi bentuk mulut viseme 2D secara otomatis dengan file audio sulih suara berbahasa Indonesia dan Inggris.',
-    url: 'https://audio.airastudio.internal/lipsync-engine',
-    category: 'animation',
-    tag: 'Lip-Sync',
-    gradientTheme: 'from-violet-500 to-purple-600',
-    clicks: 1680,
-    isFavorite: false,
-    createdAt: '2026-10-24',
-  },
+const LEGACY_TEMPLATE_IDS = new Set([
+  'link-aff-1',
+  'link-aff-2',
+  'link-aff-3',
+  'link-aff-4',
+  'link-anim-1',
+  'link-anim-2',
+  'link-anim-3',
+  'link-anim-4',
+  'link-story-1',
+  'link-story-2',
+  'link-story-3',
+  'link-story-4',
+]);
 
-  // --- Tools Cerita ---
-  {
-    id: 'link-story-1',
-    title: 'NovelAI Narrative & Worldbuilder Studio',
-    description: 'Asisten pembuat alur cerita panjang, ensiklopedia dunia fiksi, garis waktu kronologis, dan pohon relasi karakter.',
-    url: 'https://story.airastudio.internal/worldbuilder',
-    category: 'story',
-    tag: 'Novel & Fiksi',
-    gradientTheme: 'from-teal-600 to-emerald-700',
-    clicks: 2340,
-    isFavorite: true,
-    createdAt: '2026-10-10',
-    badge: 'Unggulan',
-  },
-  {
-    id: 'link-story-2',
-    title: 'Screenplay & Skenario Naskah Digital',
-    description: 'Format standar skenario film/series dengan analisis ketukan emosi (story beats) dan dialog realistis.',
-    url: 'https://script.airastudio.internal/skenario-studio',
-    category: 'story',
-    tag: 'Skenario',
-    gradientTheme: 'from-sky-500 to-indigo-600',
-    clicks: 1890,
-    isFavorite: true,
-    createdAt: '2026-10-16',
-  },
-  {
-    id: 'link-story-3',
-    title: 'Short Story Plot Generator & Twist Engine',
-    description: 'Dapatkan ide plot twist segar, premis cerita horor/fantasi/drama, dan pengait pembuka (hook) yang menarik pembaca.',
-    url: 'https://plot.airastudio.internal/plot-twist-engine',
-    category: 'story',
-    tag: 'Ide & Plot',
-    gradientTheme: 'from-indigo-500 to-pink-500',
-    clicks: 1530,
-    isFavorite: false,
-    createdAt: '2026-10-19',
-  },
-  {
-    id: 'link-story-4',
-    title: 'Character Voice & Dialect Persona Lab',
-    description: 'Simulasikan percakapan antar karakter dengan kepribadian unik, gaya bicara konsisten, dan nuansa emosional mendalam.',
-    url: 'https://persona.airastudio.internal/dialogue-lab',
-    category: 'story',
-    tag: 'Dialog',
-    gradientTheme: 'from-blue-600 to-cyan-600',
-    clicks: 890,
-    isFavorite: false,
-    createdAt: '2026-10-23',
-  },
-];
+export function isTemplateLink(link: Partial<LinkItem> | null | undefined): boolean {
+  if (!link) return false;
+  if (link.id && LEGACY_TEMPLATE_IDS.has(String(link.id))) return true;
+  if (typeof link.url === 'string' && link.url.includes('.airastudio.internal')) return true;
+  return false;
+}
 
 export const INITIAL_USERS: UserItem[] = [
   {
-    id: 'usr-1',
+    id: '00000000-0000-4000-8000-000000000001',
     name: 'Admin AIRA Studio',
     email: 'admin@airastudio.ai',
     role: 'admin',
@@ -168,7 +36,7 @@ export const INITIAL_USERS: UserItem[] = [
     joinedDate: '2026-01-10',
   },
   {
-    id: 'usr-2',
+    id: '00000000-0000-4000-8000-000000000002',
     name: 'Rian Pratama',
     email: 'rian.creator@airastudio.ai',
     role: 'creator',
@@ -177,7 +45,7 @@ export const INITIAL_USERS: UserItem[] = [
     joinedDate: '2026-03-15',
   },
   {
-    id: 'usr-3',
+    id: '00000000-0000-4000-8000-000000000003',
     name: 'Siti Rahmawati',
     email: 'siti.story@airastudio.ai',
     role: 'creator',
@@ -186,7 +54,7 @@ export const INITIAL_USERS: UserItem[] = [
     joinedDate: '2026-05-20',
   },
   {
-    id: 'usr-4',
+    id: '00000000-0000-4000-8000-000000000004',
     name: 'Budi Santoso',
     email: 'budi.affiliate@gmail.com',
     role: 'member',
@@ -195,7 +63,7 @@ export const INITIAL_USERS: UserItem[] = [
     joinedDate: '2026-08-04',
   },
   {
-    id: 'usr-5',
+    id: '00000000-0000-4000-8000-000000000005',
     name: 'Dewi Lestari',
     email: 'dewi.anim@external.io',
     role: 'member',
@@ -204,3 +72,4 @@ export const INITIAL_USERS: UserItem[] = [
     joinedDate: '2026-09-12',
   },
 ];
+
