@@ -1,0 +1,374 @@
+import React, { useState, useEffect } from 'react';
+import { AutoHideSidebar } from './components/AutoHideSidebar';
+import { TopHeader } from './components/TopHeader';
+import { CatalogView } from './components/CatalogView';
+import { AdminDashboard } from './components/AdminDashboard';
+import { LoginPage } from './components/LoginPage';
+import { LinkModal } from './components/LinkModal';
+import { 
+  MainNavigationId, 
+  LinkItem, 
+  UserItem, 
+  UserRole, 
+  ToolCategory 
+} from './types';
+import { INITIAL_LINKS, INITIAL_USERS } from './data/initialData';
+import { 
+  getLinksFromDb, 
+  insertLinkToDb, 
+  updateLinkInDb, 
+  deleteLinkFromDb,
+  getUsersFromDb,
+  insertUserToDb,
+  updateUserInDb,
+  updateUserRoleInDb,
+  toggleUserStatusInDb,
+  deleteUserFromDb,
+  authenticateWithDb,
+  isSupabaseConfigured
+} from './lib/supabase';
+
+export function App() {
+  // Navigation State
+  const [currentTab, setCurrentTab] = useState<MainNavigationId>('all');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isPinned, setIsPinned] = useState(false); // Default false = Auto-Hide mode
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Data States
+  const [links, setLinks] = useState<LinkItem[]>(() => {
+    const saved = localStorage.getItem('aira_studio_links');
+    return saved ? JSON.parse(saved) : INITIAL_LINKS;
+  });
+
+  const [users, setUsers] = useState<UserItem[]>(() => {
+    const saved = localStorage.getItem('aira_studio_users');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  });
+
+  const [currentUser, setCurrentUser] = useState<UserItem | null>(() => {
+    const saved = localStorage.getItem('aira_studio_current_user');
+    return saved ? JSON.parse(saved) : INITIAL_USERS[0]; // Super Admin demo account
+  });
+
+  // Modal States
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
+
+  // Initial load from Supabase database
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [fetchedLinks, fetchedUsers] = await Promise.all([
+          getLinksFromDb(),
+          getUsersFromDb(),
+        ]);
+        if (fetchedLinks && fetchedLinks.length > 0) setLinks(fetchedLinks);
+        if (fetchedUsers && fetchedUsers.length > 0) setUsers(fetchedUsers);
+      } catch (e) {
+        console.warn('Initial Supabase load error:', e);
+      }
+    }
+    loadData();
+  }, []);
+
+  // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem('aira_studio_links', JSON.stringify(links));
+  }, [links]);
+
+  useEffect(() => {
+    localStorage.setItem('aira_studio_users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('aira_studio_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('aira_studio_current_user');
+    }
+  }, [currentUser]);
+
+  // Keyboard shortcut listener: Cmd/Ctrl + B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setIsSidebarOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Launch link action & increment click counter
+  const handleLaunchLink = async (id: string, url: string) => {
+    const targetLink = links.find((l) => l.id === id);
+    const newClicks = (targetLink?.clicks || 0) + 1;
+    setLinks((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, clicks: newClicks } : l))
+    );
+    await updateLinkInDb(id, { clicks: newClicks });
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // Toggle favorite
+  const handleToggleFavorite = async (id: string) => {
+    const targetLink = links.find((l) => l.id === id);
+    const newFav = !targetLink?.isFavorite;
+    setLinks((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, isFavorite: newFav } : l))
+    );
+    await updateLinkInDb(id, { isFavorite: newFav });
+  };
+
+  // Link CRUD
+  const handleSaveLink = async (
+    linkData: Omit<LinkItem, 'id' | 'clicks' | 'isFavorite' | 'createdAt'>,
+    existingId?: string
+  ) => {
+    if (existingId) {
+      setLinks((prev) =>
+        prev.map((l) => (l.id === existingId ? { ...l, ...linkData } : l))
+      );
+      await updateLinkInDb(existingId, linkData);
+    } else {
+      const created = await insertLinkToDb(linkData);
+      setLinks((prev) => [created, ...prev]);
+    }
+    setEditingLink(null);
+  };
+
+  const handleEditLink = (link: LinkItem) => {
+    setEditingLink(link);
+    setIsLinkModalOpen(true);
+  };
+
+  const handleDeleteLink = async (id: string) => {
+    if (confirm('Apakah Anda yakin ingin menghapus link tools ini?')) {
+      setLinks((prev) => prev.filter((l) => l.id !== id));
+      await deleteLinkFromDb(id);
+    }
+  };
+
+  // User CRUD
+  const handleAddUser = async (userData: Omit<UserItem, 'id' | 'joinedDate'>) => {
+    const createdUser = await insertUserToDb(userData);
+    setUsers((prev) => [createdUser, ...prev]);
+  };
+
+  const handleUpdateUser = async (id: string, updates: Partial<UserItem>) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
+    );
+    await updateUserInDb(id, updates);
+  };
+
+  const handleDuplicateLink = async (link: LinkItem) => {
+    const copyData = {
+      title: `${link.title} (Salinan)`,
+      description: link.description,
+      url: link.url,
+      category: link.category,
+      tag: link.tag,
+      thumbnailUrl: link.thumbnailUrl,
+      gradientTheme: link.gradientTheme,
+      badge: link.badge,
+    };
+    const created = await insertLinkToDb(copyData);
+    setLinks((prev) => [created, ...prev]);
+  };
+
+  const handleResetClicks = async (id: string) => {
+    setLinks((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, clicks: 0 } : l))
+    );
+    await updateLinkInDb(id, { clicks: 0 });
+  };
+
+  const handleRestoreDefaultLinks = () => {
+    if (confirm('Pulihkan data link ke bawaan awal AIRA Studio AI? Tindakan ini akan menggantikan daftar link saat ini.')) {
+      setLinks(INITIAL_LINKS);
+      localStorage.setItem('aira_studio_links', JSON.stringify(INITIAL_LINKS));
+    }
+  };
+
+  const handleImportLinks = (importedLinks: LinkItem[]) => {
+    setLinks(importedLinks);
+    localStorage.setItem('aira_studio_links', JSON.stringify(importedLinks));
+  };
+
+  const handleUpdateUserRole = async (id: string, role: UserRole) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, role } : u))
+    );
+    await updateUserRoleInDb(id, role);
+  };
+
+  const handleToggleUserStatus = async (id: string) => {
+    const user = users.find((u) => u.id === id);
+    const newStatus = user?.status === 'active' ? 'suspended' : 'active';
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === id ? { ...u, status: newStatus } : u
+      )
+    );
+    await toggleUserStatusInDb(id, newStatus);
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (confirm('Hapus pengguna ini dari sistem?')) {
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      await deleteUserFromDb(id);
+    }
+  };
+
+  // Auth Handlers (with Supabase authentication & user_profiles sync)
+  const handleLogin = async (email: string, role: UserRole) => {
+    const user = await authenticateWithDb(email, role);
+    setUsers((prev) => {
+      const exists = prev.some((u) => u.email.toLowerCase() === user.email.toLowerCase());
+      if (exists) {
+        return prev.map((u) => u.email.toLowerCase() === user.email.toLowerCase() ? user : u);
+      }
+      return [user, ...prev];
+    });
+    setCurrentUser(user);
+    setCurrentTab('all');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setCurrentTab('login');
+  };
+
+  const getTabTitle = () => {
+    switch (currentTab) {
+      case 'all':
+        return 'Semua Tools & Link';
+      case 'affiliate':
+        return 'Tools Affiliate';
+      case 'animation':
+        return 'Tools Animasi';
+      case 'story':
+        return 'Tools Cerita';
+      case 'favorites':
+        return 'Koleksi Tersimpan';
+      case 'admin':
+        return 'Dashboard Admin';
+      case 'login':
+        return 'Masuk / Akun';
+      default:
+        return 'Katalog';
+    }
+  };
+
+  const linksCount = {
+    all: links.length,
+    affiliate: links.filter((l) => l.category === 'affiliate').length,
+    animation: links.filter((l) => l.category === 'animation').length,
+    story: links.filter((l) => l.category === 'story').length,
+    favorites: links.filter((l) => l.isFavorite).length,
+  };
+
+  return (
+    <div className="flex h-screen w-screen bg-slate-50 text-slate-900 overflow-hidden font-sans relative">
+      {/* 1. Auto-Hide Sidebar Menu (Sliding flyout with edge-hover trigger & pin option) */}
+      <AutoHideSidebar
+        isOpen={isSidebarOpen}
+        isPinned={isPinned && !isZenMode}
+        currentTab={currentTab}
+        onSelectTab={(tab) => {
+          setCurrentTab(tab);
+        }}
+        onOpen={() => setIsSidebarOpen(true)}
+        onClose={() => setIsSidebarOpen(false)}
+        onTogglePin={() => setIsPinned(!isPinned)}
+        onOpenNewLink={() => {
+          setEditingLink(null);
+          setIsLinkModalOpen(true);
+        }}
+        currentUser={currentUser}
+        onOpenLogin={() => setCurrentTab('login')}
+        linksCount={linksCount}
+      />
+
+      {/* 2. Full-Width Expansive Workspace (Ruang Lega 100% Layar saat Auto-Hide) */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative transition-all w-full">
+        {/* Top Header (Hanya nama workspace di kiri & search) */}
+        <TopHeader
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+
+        {/* Dynamic Workspace Content */}
+        <main className="flex-1 flex flex-col overflow-hidden relative">
+          {currentTab === 'login' ? (
+            <LoginPage
+              currentUser={currentUser}
+              onLogin={handleLogin}
+              onLogout={handleLogout}
+              onNavigateToCatalog={() => setCurrentTab('all')}
+            />
+          ) : currentTab === 'admin' ? (
+            <AdminDashboard
+              links={links}
+              users={users}
+              onOpenNewLink={() => {
+                setEditingLink(null);
+                setIsLinkModalOpen(true);
+              }}
+              onEditLink={handleEditLink}
+              onDeleteLink={handleDeleteLink}
+              onDuplicateLink={handleDuplicateLink}
+              onResetClicks={handleResetClicks}
+              onRestoreDefaultLinks={handleRestoreDefaultLinks}
+              onImportLinks={handleImportLinks}
+              onAddUser={handleAddUser}
+              onUpdateUser={handleUpdateUser}
+              onUpdateUserRole={handleUpdateUserRole}
+              onToggleUserStatus={handleToggleUserStatus}
+              onDeleteUser={handleDeleteUser}
+              onLaunchLink={handleLaunchLink}
+            />
+          ) : (
+            <CatalogView
+              currentTab={currentTab}
+              links={links}
+              searchQuery={searchQuery}
+              onLaunch={handleLaunchLink}
+              onToggleFavorite={handleToggleFavorite}
+              onOpenNewLink={() => {
+                setEditingLink(null);
+                setIsLinkModalOpen(true);
+              }}
+              onEditLink={handleEditLink}
+              onDeleteLink={handleDeleteLink}
+              currentUser={currentUser}
+              onSelectCategory={(tab) => setCurrentTab(tab)}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Modal Tambah / Edit Link */}
+      <LinkModal
+        isOpen={isLinkModalOpen}
+        onClose={() => {
+          setIsLinkModalOpen(false);
+          setEditingLink(null);
+        }}
+        onSave={handleSaveLink}
+        initialLink={editingLink}
+        defaultCategory={
+          currentTab === 'affiliate' || currentTab === 'animation' || currentTab === 'story'
+            ? (currentTab as ToolCategory)
+            : 'affiliate'
+        }
+      />
+    </div>
+  );
+}
+
+export default App;

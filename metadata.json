@@ -1,0 +1,8 @@
+{
+  "name": "AIRA Studio AI",
+  "description": "Platform peluncur link dan katalog tools kreatif AI (Affiliate, Animasi, Cerita) dengan panel manajemen admin dan desain workspace luas.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "permissions": []
+}
