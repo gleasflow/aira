@@ -71,13 +71,7 @@ export function App() {
     return INITIAL_USERS;
   });
 
-  const [currentUser, setCurrentUser] = useState<UserItem | null>(() => {
-    try {
-      const saved = localStorage.getItem('aira_studio_current_user');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return INITIAL_USERS[0]; // Super Admin demo account
-  });
+  const [currentUser, setCurrentUser] = useState<UserItem | null>(null);
 
   // Modal States
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
