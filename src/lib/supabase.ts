@@ -2,15 +2,42 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LinkItem, UserItem, UserRole, UserStatus } from '../types';
 import { INITIAL_LINKS, INITIAL_USERS, isTemplateLink } from '../data/initialData';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const DEFAULT_SUPABASE_URL = 'https://zufkcguoiazcctdttnhd.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_-m6UjRg2VNZzkEGvy9KSfg_YjWwGGnN';
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  supabaseUrl !== 'https://your-project-id.supabase.co' &&
-  supabaseAnonKey !== 'your-anon-key-here'
+const env = (import.meta as any).env || {};
+
+const rawUrl = (
+  env.VITE_SUPABASE_URL ||
+  env.NEXT_PUBLIC_SUPABASE_URL ||
+  env.SUPABASE_URL ||
+  ''
+).trim();
+
+const rawKey = (
+  env.VITE_SUPABASE_ANON_KEY ||
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  env.SUPABASE_ANON_KEY ||
+  env.SUPABASE_PUBLISHABLE_KEY ||
+  ''
+).trim();
+
+const isValidEnvUrl = Boolean(
+  rawUrl &&
+  rawUrl !== 'https://your-project-id.supabase.co' &&
+  rawUrl.startsWith('http')
 );
+
+const isValidEnvKey = Boolean(
+  rawKey &&
+  rawKey !== 'your-anon-key-here'
+);
+
+export const supabaseUrl = isValidEnvUrl ? rawUrl : DEFAULT_SUPABASE_URL;
+export const supabaseAnonKey = isValidEnvKey ? rawKey : DEFAULT_SUPABASE_ANON_KEY;
+
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabaseProjectRef = (() => {
   try {
@@ -359,23 +386,22 @@ export async function getLinksFromDb(): Promise<LinkItem[]> {
             .map((item) => ({ ...item, id: ensureValidUuid(item.id) }))
         : [];
 
-      // Gabungkan data dari Tabel PostgreSQL, Cloud Storage JSON, dan LocalStorage
-      // Jika tabel PostgreSQL sudah memiliki data dan Cloud/Local memiliki item baru yang belum masuk ke tabel (karena RLS sebelumnya), gabungkan!
       const mergedMap = new Map<string, LinkItem>();
+      const hasCloudData = cloudStorageLinks !== null || tableLinks.length > 0;
 
-      // Urutan prioritas sumber: Cloud Storage / Local -> di-override oleh Tabel PostgreSQL jika ID sama
-      for (const item of localLinks) {
-        mergedMap.set(ensureValidUuid(item.id), { ...item, id: ensureValidUuid(item.id) });
-      }
-      for (const item of validCloudLinks) {
-        mergedMap.set(ensureValidUuid(item.id), { ...item, id: ensureValidUuid(item.id) });
-      }
-      for (const item of tableLinks) {
-        mergedMap.set(ensureValidUuid(item.id), item);
+      if (!hasCloudData) {
+        for (const item of localLinks) {
+          mergedMap.set(ensureValidUuid(item.id), { ...item, id: ensureValidUuid(item.id) });
+        }
+      } else {
+        for (const item of validCloudLinks) {
+          mergedMap.set(ensureValidUuid(item.id), { ...item, id: ensureValidUuid(item.id) });
+        }
+        for (const item of tableLinks) {
+          mergedMap.set(ensureValidUuid(item.id), item);
+        }
       }
 
-      // Jika cloudStorageLinks secara eksplisit adalah array kosong [] dan tableLinks juga kosong [],
-      // tetapi localLinks kosong, hasilnya []
       const mergedLinks = Array.from(mergedMap.values());
 
       // Coba sinkronkan otomatis link yang belum ada di tabel PostgreSQL public.links
@@ -546,31 +572,23 @@ export async function getUsersFromDb(): Promise<UserItem[]> {
 
       // Gabungkan berdasarkan email (case-insensitive)
       const byEmail = new Map<string, UserItem>();
+      const hasCloudUsers = validCloudUsers.length > 0 || tableUsers.length > 0;
 
-      const baseUsers =
-        validCloudUsers.length > 0
-          ? validCloudUsers
-          : localUsers.length > 0
-          ? localUsers
-          : INITIAL_USERS;
-
-      for (const u of baseUsers) {
-        const key = u.email.trim().toLowerCase();
-        byEmail.set(key, { ...u, id: ensureValidUuid(u.id) });
-      }
-
-      // Jika localUsers memiliki user baru yang belum ada di validCloudUsers, tambahkan
-      for (const u of localUsers) {
-        const key = u.email.trim().toLowerCase();
-        if (!byEmail.has(key)) {
+      if (!hasCloudUsers) {
+        const fallbackUsers = localUsers.length > 0 ? localUsers : INITIAL_USERS;
+        for (const u of fallbackUsers) {
+          const key = u.email.trim().toLowerCase();
           byEmail.set(key, { ...u, id: ensureValidUuid(u.id) });
         }
-      }
-
-      // Data dari tabel PostgreSQL meng-update entri dengan email yang sama
-      for (const u of tableUsers) {
-        const key = u.email.trim().toLowerCase();
-        byEmail.set(key, u);
+      } else {
+        for (const u of validCloudUsers) {
+          const key = u.email.trim().toLowerCase();
+          byEmail.set(key, { ...u, id: ensureValidUuid(u.id) });
+        }
+        for (const u of tableUsers) {
+          const key = u.email.trim().toLowerCase();
+          byEmail.set(key, u);
+        }
       }
 
       const mergedUsers = Array.from(byEmail.values());
